@@ -1442,3 +1442,34 @@ body {
   user-select: none;
   -webkit-user-select: none;
 }
+
+
+/* ============================================= */
+/* FILE CHECKBOXES */
+/* ============================================= */
+.file-checkbox {
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  cursor: pointer;
+  accent-color: var(--primary);
+}
+
+.file-item.selected {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: var(--primary);
+}
+
+/* Fullscreen mode styles */
+.fullscreen-mode {
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fullscreen-mode .screen-image {
+  max-width: 100%;
+  max-height: 100vh;
+  object-fit: contain;
+}

@@ -493,6 +493,29 @@ function displayFrame(frameData) {
   streamFrameCount++;
 }
 
+function toggleFullscreen() {
+  const viewer = document.getElementById('screen-viewer');
+  
+  if (!document.fullscreenElement) {
+    viewer.requestFullscreen().catch(err => {
+      showToast(`Error al entrar en pantalla completa: ${err.message}`, 'error');
+    });
+  } else {
+    document.exitFullscreen();
+  }
+}
+
+// Listener para detectar cambios de pantalla completa
+document.addEventListener('fullscreenchange', () => {
+  const viewer = document.getElementById('screen-viewer');
+  if (document.fullscreenElement) {
+    viewer.classList.add('fullscreen-mode');
+    showToast('🖥️ Modo pantalla completa', 'info');
+  } else {
+    viewer.classList.remove('fullscreen-mode');
+  }
+});
+
 // =============================================
 // INTERACTIVE SCREEN CONTROL
 // =============================================
@@ -599,12 +622,15 @@ function mapKeyToWindows(key) {
     'ArrowDown': 'DOWN',
     'ArrowLeft': 'LEFT',
     'ArrowRight': 'RIGHT',
-    ' ': 'SPACE',
     'Home': 'HOME',
     'End': 'END',
     'PageUp': 'PGUP',
     'PageDown': 'PGDN'
   };
+  
+  // Handle space specially
+  if (key === ' ') return null; // Will be handled as regular character
+  
   return keyMap[key] || null;
 }
 
@@ -672,13 +698,14 @@ function renderFileList(data) {
   }
 
   html += items.map(item => `
-    <div class="file-item" ${item.isDir ? `ondblclick="navigateToDir(this.dataset.name)" data-name="${escapeAttr(item.name)}"` : ''}>
+    <div class="file-item ${item.isDir ? 'is-dir' : ''}" ${item.isDir ? `ondblclick="navigateToDir(this.dataset.name)" data-name="${escapeAttr(item.name)}"` : ''}>
+      ${!item.isDir ? `<input type="checkbox" class="file-checkbox" data-path="${escapeAttr(item.fullPath || item.name)}" onclick="event.stopPropagation()">` : '<span style="width: 20px; display: inline-block;"></span>'}
       <span class="file-icon">${item.isDir ? '📁' : getFileIcon(item.name)}</span>
       <span class="file-name">${escapeHtml(item.name)}</span>
       <span class="file-size">${item.isDir ? '' : formatSize(item.size)}</span>
       ${!item.isDir ? `
         <button class="file-action" data-path="${escapeAttr(item.fullPath || item.name)}" onclick="downloadFile(this.dataset.path)">
-          📥 Descargar
+          📥
         </button>
       ` : ''}
     </div>
