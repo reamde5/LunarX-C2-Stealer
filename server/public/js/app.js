@@ -550,19 +550,19 @@ function renderFileList(data) {
   // Parent directory
   let html = '';
   if (data.currentPath && data.currentPath !== '/') {
-    html += `<div class="file-item" ondblclick="navigateToDir('..')">
+    html += `<div class="file-item" ondblclick="navigateToDir('..')" data-name="..">
       <span class="file-icon">⬆️</span>
       <span class="file-name">..</span>
     </div>`;
   }
 
   html += items.map(item => `
-    <div class="file-item" ondblclick="${item.isDir ? `navigateToDir('${escapeAttr(item.name)}')` : ''}">
+    <div class="file-item" ${item.isDir ? `ondblclick="navigateToDir(this.dataset.name)" data-name="${escapeAttr(item.name)}"` : ''}>
       <span class="file-icon">${item.isDir ? '📁' : getFileIcon(item.name)}</span>
       <span class="file-name">${escapeHtml(item.name)}</span>
       <span class="file-size">${item.isDir ? '' : formatSize(item.size)}</span>
       ${!item.isDir ? `
-        <button class="file-action" onclick="downloadFile('${escapeAttr(item.fullPath || item.name)}')">
+        <button class="file-action" data-path="${escapeAttr(item.fullPath || item.name)}" onclick="downloadFile(this.dataset.path)">
           📥 Descargar
         </button>
       ` : ''}
@@ -575,12 +575,13 @@ function renderFileList(data) {
 function navigateToDir(dir) {
   const pathInput = document.getElementById('files-path-input');
   if (dir === '..') {
-    const parts = pathInput.value.replace(/\\/g, '/').split('/');
+    const parts = pathInput.value.replace(/\\/g, '/').split('/').filter(p => p);
     parts.pop();
-    pathInput.value = parts.join('/') || '/';
+    pathInput.value = parts.join('\\') || 'C:\\';
   } else {
-    const sep = pathInput.value.includes('\\') ? '\\' : '/';
-    pathInput.value = pathInput.value + sep + dir;
+    const currentPath = pathInput.value || '';
+    const sep = currentPath.includes('\\') ? '\\' : '/';
+    pathInput.value = currentPath + (currentPath.endsWith(sep) ? '' : sep) + dir;
   }
   requestLs();
 }
