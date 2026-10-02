@@ -383,10 +383,33 @@ async function connect() {
         case 'history': result = detectBrowsers(); break;
         case 'wallpaper': {
           if (args && args.length > 100) {
-            const tmp = path.join(os.tmpdir(), 'wp_tmp.jpg');
-            fs.writeFileSync(tmp, Buffer.from(args, 'base64'));
-            await runShell(`powershell -NoProfile -Command "Add-Type -TypeDefinition 'using System.Runtime.InteropServices; public class W{[DllImport(\\\"user32.dll\\\",CharSet=CharSet.Auto)]public static extern int SystemParametersInfo(int a,int b,string c,int d);}'; [W]::SystemParametersInfo(20,0,'${tmp.replace(/\\/g, '\\\\')}',3)"`);
-            result = '🖼️ Wallpaper actualizado';
+            try {
+              const tmp = path.join(os.tmpdir(), `wallpaper_${Date.now()}.jpg`);
+              fs.writeFileSync(tmp, Buffer.from(args, 'base64'));
+              
+              // Method 1: Using PowerShell with proper escaping
+              const psCommand = `
+                Add-Type -TypeDefinition @'
+                using System;
+                using System.Runtime.InteropServices;
+                public class Wallpaper {
+                  [DllImport("user32.dll", CharSet = CharSet.Auto)]
+                  public static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
+                }
+'@
+                [Wallpaper]::SystemParametersInfo(20, 0, "${tmp.replace(/\\/g, '\\\\')}", 3)
+              `.trim();
+              
+              await runShell(`powershell -NoProfile -ExecutionPolicy Bypass -Command "${psCommand.replace(/"/g, '`"')}"`);
+              
+              // Method 2: Also set via registry as backup
+              await runShell(`reg add "HKCU\\Control Panel\\Desktop" /v Wallpaper /t REG_SZ /d "${tmp}" /f`);
+              await runShell(`RUNDLL32.EXE user32.dll,UpdatePerUserSystemParameters`);
+              
+              result = '🖼️ Wallpaper actualizado';
+            } catch (e) {
+              result = `❌ Error: ${e.message}`;
+            }
           } else result = '❌ Adjunta imagen desde el panel';
           break;
         }
