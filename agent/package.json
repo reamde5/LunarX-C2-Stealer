@@ -1,0 +1,18 @@
+{
+  "name": "defender-agent",
+  "version": "2.0.0",
+  "description": "Agente de administración remota - DEFENDERgroup",
+  "main": "agent.js",
+  "scripts": {
+    "start": "node agent.js",
+    "build": "npx pkg agent.js --targets node18-win-x64 --output defender-agent.exe --compress GZip"
+  },
+  "bin": "agent.js",
+  "pkg": {
+    "assets": ["config.json"],
+    "outputPath": "dist"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.7.5"
+  }
+}

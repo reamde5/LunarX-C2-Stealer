@@ -1,0 +1,5 @@
+{
+  "serverUrl": "https://defender-panel.onrender.com",
+  "heartbeatInterval": 15000,
+  "showConsent": true
+}

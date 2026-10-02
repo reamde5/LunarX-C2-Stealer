@@ -1,0 +1,7 @@
+python-socketio[client]
+aiohttp
+psutil
+Pillow
+pyautogui
+opencv-python
+requests
