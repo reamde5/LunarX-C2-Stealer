@@ -161,6 +161,7 @@
             <button class="btn-screen-action btn-start-stream" id="btn-start-stream" onclick="toggleScreenStream()">
               ▶️ Iniciar View Screen
             </button>
+            <button class="btn-screen-action" id="btn-toggle-control" onclick="toggleScreenControl()">🔒 Activar Control</button>
             <button class="btn-screen-action" onclick="requestScreenshot()">📸 Capturar Screenshot</button>
             <div class="stream-info">
               <span id="stream-status" class="stream-badge offline">⏹ Detenido</span>
@@ -176,6 +177,7 @@
             <div class="screen-placeholder" id="screen-placeholder">
               <div class="screen-placeholder-icon">🖥️</div>
               <p>Haz clic en "Iniciar View Screen" para ver la pantalla en tiempo real</p>
+              <p style="font-size: 0.9em; opacity: 0.7; margin-top: 10px;">💡 Activa "Control" para interactuar con la pantalla</p>
             </div>
             <img id="screen-image" class="screen-image hidden" alt="Screen">
           </div>

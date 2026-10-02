@@ -493,6 +493,121 @@ function displayFrame(frameData) {
   streamFrameCount++;
 }
 
+// =============================================
+// INTERACTIVE SCREEN CONTROL
+// =============================================
+let screenControlEnabled = false;
+
+function toggleScreenControl() {
+  screenControlEnabled = !screenControlEnabled;
+  const btn = document.getElementById('btn-toggle-control');
+  const img = document.getElementById('screen-image');
+  
+  if (screenControlEnabled) {
+    btn.textContent = '🔓 Control Activo';
+    btn.classList.add('control-active');
+    img.style.cursor = 'crosshair';
+    showToast('🎮 Control remoto activado - Click en la pantalla para controlar', 'success');
+  } else {
+    btn.textContent = '🔒 Activar Control';
+    btn.classList.remove('control-active');
+    img.style.cursor = 'default';
+    showToast('Control remoto desactivado', 'info');
+  }
+}
+
+// Click handler for screen
+document.addEventListener('DOMContentLoaded', () => {
+  const screenImage = document.getElementById('screen-image');
+  if (screenImage) {
+    screenImage.addEventListener('click', handleScreenClick);
+    screenImage.addEventListener('contextmenu', handleScreenRightClick);
+  }
+});
+
+function handleScreenClick(event) {
+  if (!screenControlEnabled || !selectedDeviceId) return;
+  event.preventDefault();
+  
+  const rect = event.target.getBoundingClientRect();
+  const x = Math.round((event.clientX - rect.left) / rect.width * 1920); // Assume 1920x1080
+  const y = Math.round((event.clientY - rect.top) / rect.height * 1080);
+  
+  // Move mouse and click
+  socket.emit('send-command', { deviceId: selectedDeviceId, command: 'move_mouse', args: `${x} ${y}` });
+  setTimeout(() => {
+    socket.emit('send-command', { deviceId: selectedDeviceId, command: 'click', args: '' });
+  }, 50);
+  
+  // Visual feedback
+  showClickFeedback(event.clientX, event.clientY);
+}
+
+function handleScreenRightClick(event) {
+  if (!screenControlEnabled || !selectedDeviceId) return;
+  event.preventDefault();
+  
+  const rect = event.target.getBoundingClientRect();
+  const x = Math.round((event.clientX - rect.left) / rect.width * 1920);
+  const y = Math.round((event.clientY - rect.top) / rect.height * 1080);
+  
+  // Move mouse and right click
+  socket.emit('send-command', { deviceId: selectedDeviceId, command: 'move_mouse', args: `${x} ${y}` });
+  setTimeout(() => {
+    socket.emit('send-command', { deviceId: selectedDeviceId, command: 'rightclick', args: '' });
+  }, 50);
+  
+  showClickFeedback(event.clientX, event.clientY, 'right');
+}
+
+function showClickFeedback(x, y, type = 'left') {
+  const feedback = document.createElement('div');
+  feedback.className = 'click-feedback';
+  feedback.style.left = x + 'px';
+  feedback.style.top = y + 'px';
+  feedback.style.backgroundColor = type === 'right' ? 'rgba(255, 0, 0, 0.5)' : 'rgba(0, 255, 0, 0.5)';
+  document.body.appendChild(feedback);
+  
+  setTimeout(() => feedback.remove(), 500);
+}
+
+// Keyboard handler for screen
+document.addEventListener('keydown', (event) => {
+  if (!screenControlEnabled || !selectedDeviceId) return;
+  if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+  
+  event.preventDefault();
+  
+  // Send keypress
+  const key = mapKeyToWindows(event.key);
+  if (key) {
+    socket.emit('send-command', { deviceId: selectedDeviceId, command: 'keypress', args: key });
+  } else if (event.key.length === 1) {
+    // Regular character
+    socket.emit('send-command', { deviceId: selectedDeviceId, command: 'type', args: event.key });
+  }
+});
+
+function mapKeyToWindows(key) {
+  const keyMap = {
+    'Enter': 'ENTER',
+    'Backspace': 'BACKSPACE',
+    'Tab': 'TAB',
+    'Escape': 'ESC',
+    'Delete': 'DELETE',
+    'ArrowUp': 'UP',
+    'ArrowDown': 'DOWN',
+    'ArrowLeft': 'LEFT',
+    'ArrowRight': 'RIGHT',
+    ' ': 'SPACE',
+    'Home': 'HOME',
+    'End': 'END',
+    'PageUp': 'PGUP',
+    'PageDown': 'PGDN'
+  };
+  return keyMap[key] || null;
+}
+
 function requestScreenshot() {
   if (!selectedDeviceId) {
     showToast('Selecciona un dispositivo primero', 'warning');

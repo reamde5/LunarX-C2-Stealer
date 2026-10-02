@@ -364,6 +364,9 @@ async function connect() {
         case 'click':
           await runShell(`powershell -NoProfile -Command "$s='[DllImport(\\\"user32.dll\\\")] public static extern void mouse_event(int f,int x,int y,int d,int i);'; $m=Add-Type -MemberDefinition $s -Name M -Namespace M -PassThru; $m::mouse_event(2,0,0,0,0); Start-Sleep -M 50; $m::mouse_event(4,0,0,0,0);"`);
           result = '🖱️ Click'; break;
+        case 'rightclick':
+          await runShell(`powershell -NoProfile -Command "$s='[DllImport(\\\"user32.dll\\\")] public static extern void mouse_event(int f,int x,int y,int d,int i);'; $m=Add-Type -MemberDefinition $s -Name M -Namespace M -PassThru; $m::mouse_event(8,0,0,0,0); Start-Sleep -M 50; $m::mouse_event(16,0,0,0,0);"`);
+          result = '🖱️ Click derecho'; break;
         case 'type':
           await runShell(`powershell -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('${(args||'').replace(/'/g,"''")}')"`,);
           result = '⌨️ Texto escrito'; break;

@@ -1400,3 +1400,45 @@ body {
   .devices-grid { grid-template-columns: 1fr; }
   .controls-grid { grid-template-columns: 1fr; }
 }
+
+
+/* ============================================= */
+/* INTERACTIVE SCREEN CONTROL */
+/* ============================================= */
+.control-active {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.5) !important;
+  animation: pulse-control 2s infinite;
+}
+
+@keyframes pulse-control {
+  0%, 100% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.5); }
+  50% { box-shadow: 0 0 30px rgba(16, 185, 129, 0.8); }
+}
+
+.click-feedback {
+  position: fixed;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  animation: click-pulse 0.5s ease-out;
+  z-index: 9999;
+}
+
+@keyframes click-pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0;
+  }
+}
+
+.screen-image {
+  user-select: none;
+  -webkit-user-select: none;
+}
