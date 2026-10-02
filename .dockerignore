@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+README.md
+agent/
+agent-python/
+DEFENDER-Agent-Distributable/
+server/node_modules
+server/data/*.db
+server/data/screenshots/*
+server/data/uploads/*
+.device-id
+*.exe
