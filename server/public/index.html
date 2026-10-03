@@ -190,8 +190,10 @@
         <div class="files-container animate-slideUp">
           <div class="files-toolbar">
             <div class="files-path">
+              <button class="btn-sm btn-back" onclick="navigateParent()" title="Atrás">◀</button>
+              <button class="btn-sm btn-home" onclick="navigateHome()" title="Inicio">🏠</button>
               <span class="path-icon">📂</span>
-              <input type="text" id="files-path-input" placeholder="Ruta..." onkeydown="if(event.key==='Enter')navigatePath()">
+              <input type="text" id="files-path-input" placeholder="C:\Users\Maria" onkeydown="if(event.key==='Enter')navigatePath()">
               <button class="btn-sm" onclick="navigatePath()">Ir</button>
             </div>
             <div class="files-actions">
@@ -202,8 +204,37 @@
               </label>
             </div>
           </div>
-          <div class="files-list" id="files-list">
-            <div class="files-placeholder">Selecciona un dispositivo y navega sus archivos</div>
+          
+          <!-- Quick Access Tabs -->
+          <div class="files-quick-access">
+            <button class="quick-access-btn" onclick="navigateToQuick('Desktop')">
+              <span>🖥️</span> Escritorio
+            </button>
+            <button class="quick-access-btn" onclick="navigateToQuick('Documents')">
+              <span>📄</span> Documentos
+            </button>
+            <button class="quick-access-btn" onclick="navigateToQuick('Downloads')">
+              <span>📥</span> Descargas
+            </button>
+            <button class="quick-access-btn" onclick="navigateToQuick('Program Files')">
+              <span>📦</span> Programas
+            </button>
+            <button class="quick-access-btn" onclick="navigateToQuick('Program Files (x86)')">
+              <span>📦</span> Programas (x86)
+            </button>
+            <button class="quick-access-btn" onclick="navigateToQuick('AppData')">
+              <span>⚙️</span> AppData
+            </button>
+          </div>
+
+          <div class="files-content">
+            <div class="files-list" id="files-list">
+              <div class="files-placeholder">
+                <div class="placeholder-icon">📁</div>
+                <h3>Explorador de Archivos</h3>
+                <p>Selecciona un dispositivo para navegar por su sistema de archivos</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>

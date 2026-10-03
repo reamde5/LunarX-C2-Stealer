@@ -662,96 +662,273 @@ function updateQualityLabel() {
 // =============================================
 // FILE EXPLORER
 // =============================================
-function requestLs() {
-  if (!selectedDeviceId) return;
-  const pathInput = document.getElementById('files-path-input');
-  socket.emit('request-ls', { deviceId: selectedDeviceId, path: pathInput.value || '.' });
+let currentPath = '';
+
+function requestLs(path) {
+  if (!selectedDeviceId) {
+    showToast('⚠️ Selecciona un dispositivo primero', 'warning');
+    return;
+  }
+
+  const targetPath = path !== undefined ? path : document.getElementById('files-path-input').value;
+  
+  // Show loading
+  const list = document.getElementById('files-list');
+  list.innerHTML = '<div class="files-loading"><div class="spinner"></div><span>Cargando archivos...</span></div>';
+  
+  socket.emit('request-ls', { deviceId: selectedDeviceId, path: targetPath || '.' });
 }
 
 function navigatePath() {
+  const pathInput = document.getElementById('files-path-input');
+  requestLs(pathInput.value);
+}
+
+function navigateParent() {
+  const pathInput = document.getElementById('files-path-input');
+  const currentPath = pathInput.value;
+  
+  if (!currentPath || currentPath === 'C:\\' || currentPath === '/') {
+    showToast('Ya estás en la raíz', 'info');
+    return;
+  }
+  
+  // Navigate up one directory
+  const parts = currentPath.replace(/\\/g, '/').split('/').filter(p => p);
+  parts.pop();
+  
+  if (parts.length === 0) {
+    pathInput.value = 'C:\\';
+  } else {
+    pathInput.value = parts.join('\\');
+  }
+  
+  requestLs();
+}
+
+function navigateHome() {
+  const pathInput = document.getElementById('files-path-input');
+  pathInput.value = 'C:\\Users\\Maria';
+  requestLs();
+}
+
+function navigateToQuick(folder) {
+  if (!selectedDeviceId) {
+    showToast('⚠️ Selecciona un dispositivo primero', 'warning');
+    return;
+  }
+  
+  const pathInput = document.getElementById('files-path-input');
+  
+  // Map quick access to typical Windows paths
+  const pathMap = {
+    'Desktop': 'C:\\Users\\Maria\\Desktop',
+    'Documents': 'C:\\Users\\Maria\\Documents',
+    'Downloads': 'C:\\Users\\Maria\\Downloads',
+    'Program Files': 'C:\\Program Files',
+    'Program Files (x86)': 'C:\\Program Files (x86)',
+    'AppData': 'C:\\Users\\Maria\\AppData'
+  };
+  
+  pathInput.value = pathMap[folder] || folder;
   requestLs();
 }
 
 function renderFileList(data) {
   const list = document.getElementById('files-list');
-  document.getElementById('files-path-input').value = data.currentPath || '';
+  const pathInput = document.getElementById('files-path-input');
+  
+  // Update current path
+  currentPath = data.currentPath || data.path || '';
+  pathInput.value = currentPath;
 
-  if (!data.items || data.items.length === 0) {
-    list.innerHTML = '<div class="files-placeholder">Directorio vacío</div>';
+  if (data.error) {
+    list.innerHTML = `
+      <div class="files-placeholder">
+        <div class="placeholder-icon">⚠️</div>
+        <h3>Error al acceder al directorio</h3>
+        <p>${escapeHtml(data.error)}</p>
+      </div>
+    `;
     return;
   }
 
-  // Sort: directories first
+  if (!data.items || data.items.length === 0) {
+    list.innerHTML = `
+      <div class="files-placeholder">
+        <div class="placeholder-icon">📂</div>
+        <h3>Directorio vacío</h3>
+        <p>No hay archivos o carpetas en este directorio</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Sort: directories first, then by name
   const items = data.items.sort((a, b) => {
     if (a.isDir && !b.isDir) return -1;
     if (!a.isDir && b.isDir) return 1;
     return a.name.localeCompare(b.name);
   });
 
-  // Parent directory
+  // Build HTML
   let html = '';
-  if (data.currentPath && data.currentPath !== '/') {
-    html += `<div class="file-item" ondblclick="navigateToDir('..')" data-name="..">
-      <span class="file-icon">⬆️</span>
-      <span class="file-name">..</span>
-    </div>`;
+  
+  // Parent directory (..)
+  const isNotRoot = currentPath && 
+    currentPath !== 'C:\\' && 
+    currentPath !== '/' && 
+    currentPath !== '.' &&
+    currentPath !== '';
+    
+  if (isNotRoot) {
+    html += `
+      <div class="file-item parent-dir" onclick="navigateParent()" title="Directorio anterior">
+        <span class="file-icon">⬆️</span>
+        <span class="file-name">..</span>
+        <span class="file-size"></span>
+        <span class="file-date"></span>
+      </div>
+    `;
   }
 
-  html += items.map(item => `
-    <div class="file-item ${item.isDir ? 'is-dir' : ''}" ${item.isDir ? `ondblclick="navigateToDir(this.dataset.name)" data-name="${escapeAttr(item.name)}"` : ''}>
-      ${!item.isDir ? `<input type="checkbox" class="file-checkbox" data-path="${escapeAttr(item.fullPath || item.name)}" onclick="event.stopPropagation()">` : '<span style="width: 20px; display: inline-block;"></span>'}
-      <span class="file-icon">${item.isDir ? '📁' : getFileIcon(item.name)}</span>
-      <span class="file-name">${escapeHtml(item.name)}</span>
-      <span class="file-size">${item.isDir ? '' : formatSize(item.size)}</span>
-      ${!item.isDir ? `
-        <button class="file-action" data-path="${escapeAttr(item.fullPath || item.name)}" onclick="downloadFile(this.dataset.path)">
-          📥
-        </button>
-      ` : ''}
-    </div>
-  `).join('');
+  // File/folder items
+  html += items.map(item => {
+    const fullPath = item.fullPath || (currentPath + '\\' + item.name);
+    const isFolder = item.isDir || item.type === 'dir';
+    const icon = isFolder ? '📁' : getFileIcon(item.name);
+    const size = isFolder ? '<DIR>' : formatSize(item.size || 0);
+    const date = item.modified || item.date || '';
+    
+    if (isFolder) {
+      return `
+        <div class="file-item folder" ondblclick="navigateToDir('${escapeAttr(item.name)}')" title="${escapeHtml(item.name)}">
+          <span class="file-icon">${icon}</span>
+          <span class="file-name">${escapeHtml(item.name)}</span>
+          <span class="file-size">${size}</span>
+          <span class="file-date">${escapeHtml(date)}</span>
+        </div>
+      `;
+    } else {
+      return `
+        <div class="file-item" title="${escapeHtml(item.name)} - ${size}">
+          <span class="file-icon">${icon}</span>
+          <span class="file-name">${escapeHtml(item.name)}</span>
+          <span class="file-size">${size}</span>
+          <span class="file-date">${escapeHtml(date)}</span>
+          <div class="file-actions">
+            <button class="file-action" onclick="downloadFile('${escapeAttr(fullPath)}')" title="Descargar">
+              📥 Descargar
+            </button>
+            <button class="file-action danger" onclick="confirmDeleteFile('${escapeAttr(fullPath)}')" title="Eliminar">
+              🗑️ Eliminar
+            </button>
+          </div>
+        </div>
+      `;
+    }
+  }).join('');
 
   list.innerHTML = html;
 }
 
-function navigateToDir(dir) {
+function navigateToDir(dirname) {
   const pathInput = document.getElementById('files-path-input');
-  if (dir === '..') {
-    const parts = pathInput.value.replace(/\\/g, '/').split('/').filter(p => p);
-    parts.pop();
-    pathInput.value = parts.join('\\') || 'C:\\';
+  const currentPath = pathInput.value || '';
+  
+  // Build new path
+  let newPath;
+  if (currentPath.endsWith('\\') || currentPath.endsWith('/')) {
+    newPath = currentPath + dirname;
   } else {
-    const currentPath = pathInput.value || '';
-    const sep = currentPath.includes('\\') ? '\\' : '/';
-    pathInput.value = currentPath + (currentPath.endsWith(sep) ? '' : sep) + dir;
+    newPath = currentPath + '\\' + dirname;
   }
+  
+  pathInput.value = newPath;
   requestLs();
 }
 
 function downloadFile(filepath) {
+  if (!selectedDeviceId) return;
+  
   socket.emit('request-download', { deviceId: selectedDeviceId, filepath });
   showToast('📥 Descargando archivo...', 'info');
+}
+
+function confirmDeleteFile(filepath) {
+  if (confirm(`¿Estás seguro de eliminar este archivo?\n\n${filepath}`)) {
+    socket.emit('delete-file', { deviceId: selectedDeviceId, filepath });
+    showToast('🗑️ Eliminando archivo...', 'warning');
+  }
 }
 
 function uploadFile() {
   const input = document.getElementById('file-upload-input');
   const file = input.files[0];
-  if (!file || !selectedDeviceId) return;
+  
+  if (!file) return;
+  
+  if (!selectedDeviceId) {
+    showToast('⚠️ Selecciona un dispositivo primero', 'warning');
+    return;
+  }
+
+  // Show upload toast
+  showToast(`📤 Subiendo: ${file.name}`, 'info');
 
   const reader = new FileReader();
   reader.onload = () => {
     const base64 = reader.result.split(',')[1];
-    const destPath = document.getElementById('files-path-input').value || '.';
+    const destPath = document.getElementById('files-path-input').value || 'C:\\';
+    
     socket.emit('upload-file', {
       deviceId: selectedDeviceId,
       filename: file.name,
       data: base64,
       destPath
     });
-    showToast(`📤 Subiendo: ${file.name}`, 'info');
   };
+  
+  reader.onerror = () => {
+    showToast('❌ Error al leer el archivo', 'error');
+  };
+  
   reader.readAsDataURL(file);
   input.value = '';
+}
+
+// File icon helper
+function getFileIcon(filename) {
+  const ext = filename.split('.').pop().toLowerCase();
+  const iconMap = {
+    // Documents
+    'txt': '📄', 'doc': '📝', 'docx': '📝', 'pdf': '📕',
+    'xls': '📊', 'xlsx': '📊', 'csv': '📊',
+    'ppt': '📰', 'pptx': '📰',
+    // Images
+    'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️', 'bmp': '🖼️', 'svg': '🖼️',
+    'ico': '🎨', 'webp': '🖼️',
+    // Videos
+    'mp4': '🎬', 'avi': '🎬', 'mkv': '🎬', 'mov': '🎬', 'wmv': '🎬', 'flv': '🎬',
+    // Audio
+    'mp3': '🎵', 'wav': '🎵', 'flac': '🎵', 'aac': '🎵', 'ogg': '🎵', 'm4a': '🎵',
+    // Archives
+    'zip': '📦', 'rar': '📦', '7z': '📦', 'tar': '📦', 'gz': '📦',
+    // Code
+    'js': '📜', 'ts': '📜', 'jsx': '📜', 'tsx': '📜',
+    'py': '🐍', 'java': '☕', 'cpp': '⚙️', 'c': '⚙️', 'h': '⚙️',
+    'html': '🌐', 'css': '🎨', 'json': '📋', 'xml': '📋',
+    'php': '🐘', 'rb': '💎', 'go': '🔵', 'rs': '🦀',
+    // Executables
+    'exe': '⚙️', 'msi': '⚙️', 'bat': '⚙️', 'sh': '⚙️', 'cmd': '⚙️',
+    'dll': '🔧', 'sys': '🔧',
+    // Other
+    'db': '🗄️', 'sql': '🗄️', 'sqlite': '🗄️',
+    'log': '📋', 'ini': '⚙️', 'cfg': '⚙️', 'conf': '⚙️',
+    'md': '📝', 'readme': '📝'
+  };
+  
+  return iconMap[ext] || '📄';
 }
 
 // =============================================

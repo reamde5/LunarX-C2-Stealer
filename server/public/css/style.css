@@ -1044,6 +1044,20 @@ body {
   align-items: center;
   gap: 8px;
   flex: 1;
+  min-width: 300px;
+}
+
+.btn-back, .btn-home {
+  padding: 6px 12px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+}
+
+.btn-back:hover, .btn-home:hover {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--accent);
 }
 
 .path-icon { font-size: 18px; }
@@ -1058,10 +1072,12 @@ body {
   font-family: 'Cascadia Code', monospace;
   font-size: 13px;
   outline: none;
+  min-width: 200px;
 }
 
 .files-path input:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
 }
 
 .files-actions {
@@ -1073,6 +1089,50 @@ body {
   cursor: pointer;
 }
 
+/* Quick Access Bar */
+.files-quick-access {
+  display: flex;
+  gap: 6px;
+  padding: 10px 16px;
+  background: rgba(22, 27, 34, 0.6);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  flex-wrap: wrap;
+}
+
+.quick-access-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.quick-access-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.quick-access-btn span {
+  font-size: 14px;
+}
+
+/* Files Content Area */
+.files-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 .files-list {
   flex: 1;
   overflow-y: auto;
@@ -1081,43 +1141,157 @@ body {
 
 .files-placeholder {
   text-align: center;
-  padding: 60px 20px;
+  padding: 80px 20px;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.placeholder-icon {
+  font-size: 64px;
+  animation: float 3s ease-in-out infinite;
+}
+
+.files-placeholder h3 {
+  font-size: 18px;
+  color: var(--text-dim);
+  margin-top: 8px;
+}
+
+.files-placeholder p {
+  font-size: 14px;
   color: var(--text-muted);
 }
 
+/* File Item */
 .file-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  border-radius: 6px;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
   cursor: pointer;
   transition: var(--transition);
-  font-size: 13px;
+  font-size: 14px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.02);
+  margin-bottom: 4px;
 }
 
 .file-item:hover {
   background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.2);
+  transform: translateX(4px);
 }
 
-.file-item .file-icon { font-size: 18px; min-width: 24px; text-align: center; }
-.file-item .file-name { flex: 1; }
-.file-item .file-size { color: var(--text-muted); font-size: 12px; }
+.file-item.folder {
+  font-weight: 500;
+}
 
-.file-item .file-action {
-  padding: 4px 8px;
+.file-item.folder:hover {
+  background: rgba(139, 92, 246, 0.08);
+  border-color: rgba(139, 92, 246, 0.2);
+}
+
+.file-item .file-icon { 
+  font-size: 22px; 
+  min-width: 28px; 
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-item .file-name { 
+  flex: 1; 
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.file-item .file-size { 
+  color: var(--text-muted); 
+  font-size: 12px;
+  font-family: 'Cascadia Code', monospace;
+  min-width: 80px;
+  text-align: right;
+}
+
+.file-item .file-date {
+  color: var(--text-muted); 
+  font-size: 11px;
+  font-family: 'Cascadia Code', monospace;
+  min-width: 140px;
+  text-align: right;
+}
+
+.file-item .file-actions {
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: var(--transition);
+}
+
+.file-item:hover .file-actions { 
+  opacity: 1; 
+}
+
+.file-action {
+  padding: 4px 10px;
   border: 1px solid var(--border);
   border-radius: 4px;
   background: transparent;
   color: var(--text-dim);
   font-size: 11px;
   cursor: pointer;
-  opacity: 0;
   transition: var(--transition);
 }
 
-.file-item:hover .file-action { opacity: 1; }
-.file-item .file-action:hover { background: rgba(59, 130, 246, 0.1); color: var(--accent); }
+.file-action:hover { 
+  background: rgba(59, 130, 246, 0.15); 
+  color: var(--accent); 
+  border-color: var(--accent);
+}
+
+.file-action.danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--red);
+  border-color: var(--red);
+}
+
+/* Parent Directory (..) */
+.file-item.parent-dir {
+  background: rgba(139, 92, 246, 0.05);
+  border-color: rgba(139, 92, 246, 0.2);
+  font-weight: 600;
+}
+
+.file-item.parent-dir:hover {
+  background: rgba(139, 92, 246, 0.12);
+}
+
+/* Loading State */
+.files-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: var(--text-dim);
+  gap: 12px;
+}
+
+.files-loading .spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(59, 130, 246, 0.2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
 
 /* =============================================
    CONTROL CARDS

